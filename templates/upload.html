@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="py-5">
+    <div class="container">
+        <div class="dashboard-panel fade-in-up">
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                <div>
+                    <h2 class="login-title mb-1">{{ t.upload }}</h2>
+                    <p class="login-subtitle mb-0">{{ t.documents_protected }}</p>
+                </div>
+
+                <a href="/documents?lang={{ lang }}" class="btn btn-outline-light">
+                    <i class="fa-solid fa-folder-open me-2"></i>{{ t.documents }}
+                </a>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">{{ t.title }}</label>
+                        <div class="input-group custom-input-group">
+                            <input type="text" name="title" class="form-control" placeholder="{{ t.title }}" required>
+                            <span class="input-group-text">
+                                <i class="fa-solid fa-file-lines"></i>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">{{ t.category }}</label>
+                        <div class="input-group custom-input-group">
+                            <select name="category" class="form-control" required>
+                                <option value="government">{{ t.government }}</option>
+                                <option value="medical">{{ t.medical }}</option>
+                                <option value="property">{{ t.property }}</option>
+                                <option value="personal">{{ t.personal }}</option>
+                            </select>
+                            <span class="input-group-text">
+                                <i class="fa-solid fa-layer-group"></i>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">{{ t.description }}</label>
+                        <textarea name="description" rows="4" class="form-control" placeholder="{{ t.notes_optional }}"></textarea>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">{{ t.choose_file }}</label>
+                        <div class="upload-dropzone" id="dropzone">
+                            <input type="file" name="file" id="fileInput" class="form-control d-none" accept=".pdf,.png,.jpg,.jpeg" required>
+                            <div class="upload-dropzone-content">
+                                <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+                                <h5 class="mt-3 mb-2">Drag & Drop your file here</h5>
+                                <p class="text-secondary mb-3">PDF, PNG, JPG, JPEG — max 5 MB</p>
+                                <button type="button" class="btn malath-btn" id="browseBtn">
+                                    <i class="fa-solid fa-folder-open me-2"></i>Browse File
+                                </button>
+                                <div class="selected-file-box mt-3" id="selectedFileBox" style="display:none;">
+                                    <i class="fa-solid fa-file me-2"></i>
+                                    <span id="selectedFileName"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 mt-3 d-flex gap-2 flex-wrap">
+                        <button type="submit" class="btn malath-btn">
+                            <i class="fa-solid fa-upload me-2"></i>{{ t.upload }}
+                        </button>
+
+                        <a href="/dashboard?lang={{ lang }}" class="btn btn-outline-light">
+                            <i class="fa-solid fa-gauge-high me-2"></i>{{ t.dashboard }}
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const dropzone = document.getElementById("dropzone");
+    const fileInput = document.getElementById("fileInput");
+    const browseBtn = document.getElementById("browseBtn");
+    const selectedFileBox = document.getElementById("selectedFileBox");
+    const selectedFileName = document.getElementById("selectedFileName");
+
+    browseBtn.addEventListener("click", function () {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener("change", function () {
+        if (fileInput.files.length > 0) {
+            selectedFileName.textContent = fileInput.files[0].name;
+            selectedFileBox.style.display = "inline-block";
+        }
+    });
+
+    dropzone.addEventListener("dragover", function (e) {
+        e.preventDefault();
+        dropzone.classList.add("dragover");
+    });
+
+    dropzone.addEventListener("dragleave", function () {
+        dropzone.classList.remove("dragover");
+    });
+
+    dropzone.addEventListener("drop", function (e) {
+        e.preventDefault();
+        dropzone.classList.remove("dragover");
+
+        if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            selectedFileName.textContent = e.dataTransfer.files[0].name;
+            selectedFileBox.style.display = "inline-block";
+        }
+    });
+});
+</script>
+{% endblock %}

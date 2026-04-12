@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="py-5">
+    <div class="container">
+
+        <div class="dashboard-box mb-4">
+            <h1 class="dashboard-main-title">{{ t.dashboard }}</h1>
+            <p class="dashboard-main-subtitle">
+                {{ t.welcome_user }} {{ current_user.full_name }} — {{ t.manage_archive }}
+            </p>
+
+            <div class="mt-3 d-flex gap-2 flex-wrap">
+                <a href="/upload?lang={{ lang }}" class="btn malath-btn">
+                    <i class="fa-solid fa-cloud-arrow-up me-2"></i>{{ t.upload }}
+                </a>
+
+                <a href="/documents?lang={{ lang }}" class="btn btn-outline-light">
+                    <i class="fa-solid fa-folder-open me-2"></i>{{ t.documents }}
+                </a>
+
+                <a href="/verify-pin?lang={{ lang }}" class="btn btn-warning">
+                    <i class="fa-solid fa-key me-2"></i>{{ t.verify_pin }}
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-6 col-xl-2">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fa-solid fa-folder-tree"></i></div>
+                    <div class="stat-number">{{ counts.total }}</div>
+                    <div class="stat-label">{{ t.total_docs }}</div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-xl-2">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fa-solid fa-building-shield"></i></div>
+                    <div class="stat-number">{{ counts.government }}</div>
+                    <div class="stat-label">{{ t.government }}</div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-xl-2">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fa-solid fa-notes-medical"></i></div>
+                    <div class="stat-number">{{ counts.medical }}</div>
+                    <div class="stat-label">{{ t.medical }}</div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-xl-2">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fa-solid fa-house-lock"></i></div>
+                    <div class="stat-number">{{ counts.property }}</div>
+                    <div class="stat-label">{{ t.property }}</div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-xl-2">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fa-solid fa-id-card"></i></div>
+                    <div class="stat-number">{{ counts.personal }}</div>
+                    <div class="stat-label">{{ t.personal }}</div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-xl-2">
+                <div class="stat-card {% if pin_verified %}stat-card-success{% endif %}">
+                    <div class="stat-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                    <div class="stat-number">{% if pin_verified %}ON{% else %}OFF{% endif %}</div>
+                    <div class="stat-label">
+                        {% if pin_verified %}{{ t.pin_verified }}{% else %}{{ t.security_layer }}{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-box">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <h3 class="dashboard-section-title mb-0">{{ t.recent_documents }}</h3>
+                <a href="/documents?lang={{ lang }}" class="btn btn-outline-light btn-sm">
+                    {{ t.all_documents }}
+                </a>
+            </div>
+
+            {% if recent_documents %}
+                <div class="table-responsive">
+                    <table class="table table-dark table-bordered align-middle">
+                        <thead>
+                            <tr>
+                                <th>{{ t.title }}</th>
+                                <th>{{ t.category }}</th>
+                                <th>{{ t.upload_date }}</th>
+                                <th>{{ t.actions }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doc in recent_documents %}
+                            <tr>
+                                <td>{{ doc.title }}</td>
+                                <td>{{ doc.category }}</td>
+                                <td>{{ doc.upload_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td class="d-flex gap-2 flex-wrap">
+                                    <a href="/documents/download/{{ doc.id }}?lang={{ lang }}" class="btn btn-success btn-sm">
+                                        {{ t.download }}
+                                    </a>
+                                    <a href="/documents/edit/{{ doc.id }}?lang={{ lang }}" class="btn btn-warning btn-sm">
+                                        {{ t.edit }}
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-dashboard-state">
+                    <i class="fa-solid fa-folder-open empty-state-icon"></i>
+                    <h4 class="mt-3">{{ t.documents }}</h4>
+                    <p class="text-secondary">No documents uploaded yet.</p>
+                </div>
+            {% endif %}
+        </div>
+
+    </div>
+</section>
+{% endblock %}

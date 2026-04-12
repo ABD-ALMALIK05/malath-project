@@ -1,0 +1,7 @@
+*.pem
+*.db
+__pycache__/
+venv/
+.env
+instance/
+uploads/
