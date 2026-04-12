@@ -12,17 +12,26 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from sqlalchemy import or_
 
+
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'malath_secret_key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///malath.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+
+from dotenv import load_dotenv
+from config import AWS_ACCESS_KEY, AWS_SECRET_KEY, AWS_BUCKET_NAME, AWS_REGION
+
+load_dotenv()
+
+
 # ========= AWS CONFIG =========
 # ضع المفاتيح الجديدة هنا أو انقلها إلى config.py
-app.config['AWS_ACCESS_KEY'] = 'AKIA2UC27MZMC6VACHWE'
-app.config['AWS_SECRET_KEY'] = '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'
-app.config['AWS_BUCKET_NAME'] = 'malath-documents-2026'
-app.config['AWS_REGION'] = 'eu-north-1'
+app.config['AWS_ACCESS_KEY'] = AWS_ACCESS_KEY
+app.config['AWS_SECRET_KEY'] = AWS_SECRET_KEY
+app.config['AWS_BUCKET_NAME'] = AWS_BUCKET_NAME
+app.config['AWS_REGION'] = AWS_REGION
 
 # ========= LOCAL CONFIG =========
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
