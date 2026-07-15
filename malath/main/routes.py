@@ -1,8 +1,9 @@
-from flask import redirect, render_template, session, url_for
+from flask import redirect, render_template, url_for
 from flask_login import current_user, login_required
 
 from ..i18n import get_lang, get_translations
 from ..models import Document, get_category_counts
+from ..security import is_pin_verified
 from . import bp
 
 
@@ -32,5 +33,5 @@ def dashboard():
         lang=lang,
         counts=counts,
         recent_documents=recent_documents,
-        pin_verified=session.get("pin_verified", False),
+        pin_verified=is_pin_verified(),
     )

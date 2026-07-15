@@ -8,6 +8,7 @@
             <p class="login-subtitle">{{ document.original_filename }}</p>
 
             <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label">{{ t.title }}</label>

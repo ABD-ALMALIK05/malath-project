@@ -1,7 +1,7 @@
 import os
 import uuid
 
-from flask import flash, redirect, render_template, request, url_for
+from flask import current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 
@@ -59,8 +59,9 @@ def upload():
                 stored_filename,
                 file.content_type or "application/octet-stream",
             )
-        except StorageError as error:
-            flash(f"S3 upload failed: {error}", "danger")
+        except StorageError:
+            current_app.logger.warning("Document upload failed", exc_info=True)
+            flash(t["storage_upload_failed"], "danger")
             return redirect(url_for("documents.upload", lang=lang))
 
         document = Document(
@@ -114,16 +115,13 @@ def documents():
 def download_document(document_id):
     lang = get_lang()
     t = get_translations(lang)
-    document = Document.query.get_or_404(document_id)
-
-    if document.user_id != current_user.id:
-        flash(t["not_authorized"], "danger")
-        return redirect(url_for("documents.documents", lang=lang))
+    document = get_owned_document_or_404(document_id)
 
     try:
         return redirect(create_presigned_download_url(document.stored_filename))
-    except StorageError as error:
-        flash(f"Download link generation failed: {error}", "danger")
+    except StorageError:
+        current_app.logger.warning("Document download link generation failed", exc_info=True)
+        flash(t["storage_download_failed"], "danger")
         return redirect(url_for("documents.documents", lang=lang))
 
 
@@ -133,11 +131,7 @@ def download_document(document_id):
 def edit_document(document_id):
     lang = get_lang()
     t = get_translations(lang)
-    document = Document.query.get_or_404(document_id)
-
-    if document.user_id != current_user.id:
-        flash(t["not_authorized"], "danger")
-        return redirect(url_for("documents.documents", lang=lang))
+    document = get_owned_document_or_404(document_id)
 
     if request.method == "POST":
         title = request.form.get("title", "").strip()
@@ -165,16 +159,13 @@ def edit_document(document_id):
 def delete_document(document_id):
     lang = get_lang()
     t = get_translations(lang)
-    document = Document.query.get_or_404(document_id)
-
-    if document.user_id != current_user.id:
-        flash(t["not_authorized"], "danger")
-        return redirect(url_for("documents.documents", lang=lang))
+    document = get_owned_document_or_404(document_id)
 
     try:
         delete_object(document.stored_filename)
-    except StorageError as error:
-        flash(f"S3 delete failed: {error}", "danger")
+    except StorageError:
+        current_app.logger.warning("Document deletion failed", exc_info=True)
+        flash(t["storage_delete_failed"], "danger")
         return redirect(url_for("documents.documents", lang=lang))
 
     db.session.delete(document)
@@ -182,3 +173,7 @@ def delete_document(document_id):
 
     flash(t["document_deleted"], "success")
     return redirect(url_for("documents.documents", lang=lang))
+
+
+def get_owned_document_or_404(document_id):
+    return Document.query.filter_by(id=document_id, user_id=current_user.id).first_or_404()

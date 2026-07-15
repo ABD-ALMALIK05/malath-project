@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="login-section">
+    <div class="container">
+        <div class="row justify-content-center align-items-center min-vh-100">
+            <div class="col-lg-6">
+                <div class="login-card fade-in-up text-center">
+                    <h1 class="login-title">{{ status_code }}</h1>
+                    <p class="login-subtitle">{{ message }}</p>
+                    <a href="{{ url_for('main.index', lang=lang) }}" class="btn malath-btn">
+                        <i class="fa-solid fa-house me-2"></i>{{ t.dashboard if current_user.is_authenticated else t.get_started }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

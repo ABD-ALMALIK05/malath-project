@@ -67,6 +67,7 @@
                                             <i class="fa-solid fa-pen me-1"></i>{{ t.edit }}
                                         </a>
                                         <form method="POST" action="/documents/delete/{{ doc.id }}?lang={{ lang }}" onsubmit="return confirm('Are you sure?');">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button type="submit" class="btn btn-danger btn-sm">
                                                 <i class="fa-solid fa-trash me-1"></i>{{ t.delete }}
                                             </button>

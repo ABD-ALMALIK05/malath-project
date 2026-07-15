@@ -5,7 +5,8 @@ from flask import Flask
 
 from .config import Config
 from .extensions import db, login_manager
-from .i18n import get_lang
+from .i18n import get_lang, get_translations
+from .security import CSRFError, generate_csrf_token, validate_csrf_token
 
 
 def create_app(config_object=None):
@@ -36,9 +37,38 @@ def create_app(config_object=None):
     app.register_blueprint(auth_bp)
     app.register_blueprint(documents_bp)
 
+    app.jinja_env.globals["csrf_token"] = generate_csrf_token
+
+    @app.before_request
+    def protect_state_changing_requests():
+        validate_csrf_token()
+
+    @app.after_request
+    def set_security_headers(response):
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault(
+            "Permissions-Policy",
+            "camera=(), microphone=(), geolocation=(), payment=()",
+        )
+        return response
+
     @app.context_processor
     def inject_globals():
         return {"current_lang": get_lang()}
+
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(error):
+        lang = get_lang()
+        return (
+            render_security_error(
+                status_code=400,
+                message=get_translations(lang)["csrf_error"],
+                lang=lang,
+            ),
+            400,
+        )
 
     @app.cli.command("init-db")
     def init_db_command():
@@ -46,3 +76,15 @@ def create_app(config_object=None):
         print("Database tables initialized.")
 
     return app
+
+
+def render_security_error(status_code, message, lang):
+    from flask import render_template
+
+    return render_template(
+        "error.html",
+        t=get_translations(lang),
+        lang=lang,
+        status_code=status_code,
+        message=message,
+    )

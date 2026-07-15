@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -31,6 +31,10 @@ class User(db.Model, UserMixin):
         return check_password_hash(self.pin_hash, pin)
 
 
+def utc_now():
+    return datetime.now(UTC)
+
+
 class Document(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
@@ -41,7 +45,7 @@ class Document(db.Model):
     original_filename = db.Column(db.String(255), nullable=False)
     file_type = db.Column(db.String(20), nullable=False)
     file_size = db.Column(db.Integer, nullable=False)
-    upload_date = db.Column(db.DateTime, default=datetime.utcnow)
+    upload_date = db.Column(db.DateTime, default=utc_now)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
 

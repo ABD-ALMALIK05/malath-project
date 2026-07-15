@@ -11,6 +11,7 @@
                     <p class="login-subtitle">{{ t.login_subtitle }}</p>
 
                     <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="mb-3">
                             <label class="form-label">{{ t.email_or_username }}</label>
                             <div class="input-group custom-input-group">

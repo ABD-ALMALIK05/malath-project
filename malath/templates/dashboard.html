@@ -22,6 +22,15 @@
                 <a href="/verify-pin?lang={{ lang }}" class="btn btn-warning">
                     <i class="fa-solid fa-key me-2"></i>{{ t.verify_pin }}
                 </a>
+
+                {% if pin_verified %}
+                    <form method="POST" action="{{ url_for('auth.clear_pin', lang=lang) }}" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline-warning">
+                            <i class="fa-solid fa-lock me-2"></i>{{ t.documents_protected }}
+                        </button>
+                    </form>
+                {% endif %}
             </div>
         </div>
 

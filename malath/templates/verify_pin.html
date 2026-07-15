@@ -9,7 +9,8 @@
                     <h2 class="login-title">{{ t.verify_pin }}</h2>
                     <p class="login-subtitle">{{ t.pin_subtitle }}</p>
 
-                    <form method="POST">
+                    <form method="POST" action="{{ url_for('auth.verify_pin', next=next_url, lang=lang) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="mb-4">
                             <label class="form-label">{{ t.secure_pin }}</label>
                             <div class="input-group custom-input-group">
