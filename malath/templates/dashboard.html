@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
+{% block title %}{{ t.dashboard }} | {{ t.brand }}{% endblock %}
+
 {% block content %}
 <section class="py-5">
     <div class="container">
@@ -7,27 +9,27 @@
         <div class="dashboard-box mb-4">
             <h1 class="dashboard-main-title">{{ t.dashboard }}</h1>
             <p class="dashboard-main-subtitle">
-                {{ t.welcome_user }} {{ current_user.full_name }} — {{ t.manage_archive }}
+                {{ t.welcome_user }} {{ current_user.full_name }} - {{ t.manage_archive }}
             </p>
 
             <div class="mt-3 d-flex gap-2 flex-wrap">
-                <a href="/upload?lang={{ lang }}" class="btn malath-btn">
-                    <i class="fa-solid fa-cloud-arrow-up me-2"></i>{{ t.upload }}
+                <a href="{{ localized_url_for('documents.upload', lang=lang) }}" class="btn malath-btn">
+                    <i class="fa-solid fa-cloud-arrow-up me-2" aria-hidden="true"></i>{{ t.upload }}
                 </a>
 
-                <a href="/documents?lang={{ lang }}" class="btn btn-outline-light">
-                    <i class="fa-solid fa-folder-open me-2"></i>{{ t.documents }}
+                <a href="{{ localized_url_for('documents.documents', lang=lang) }}" class="btn btn-outline-light">
+                    <i class="fa-solid fa-folder-open me-2" aria-hidden="true"></i>{{ t.documents }}
                 </a>
 
-                <a href="/verify-pin?lang={{ lang }}" class="btn btn-warning">
-                    <i class="fa-solid fa-key me-2"></i>{{ t.verify_pin }}
+                <a href="{{ localized_url_for('auth.verify_pin', lang=lang) }}" class="btn btn-warning">
+                    <i class="fa-solid fa-key me-2" aria-hidden="true"></i>{{ t.verify_pin }}
                 </a>
 
                 {% if pin_verified %}
-                    <form method="POST" action="{{ url_for('auth.clear_pin', lang=lang) }}" class="d-inline">
+                    <form method="POST" action="{{ localized_url_for('auth.clear_pin', lang=lang) }}" class="d-inline" data-prevent-double-submit>
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-outline-warning">
-                            <i class="fa-solid fa-lock me-2"></i>{{ t.documents_protected }}
+                        <button type="submit" class="btn btn-outline-warning" data-loading-text="{{ t.submitting }}">
+                            <i class="fa-solid fa-lock me-2" aria-hidden="true"></i>{{ t.security_layer }}
                         </button>
                     </form>
                 {% endif %}
@@ -37,7 +39,7 @@
         <div class="row g-3 mb-4">
             <div class="col-md-6 col-xl-2">
                 <div class="stat-card">
-                    <div class="stat-icon"><i class="fa-solid fa-folder-tree"></i></div>
+                    <div class="stat-icon"><i class="fa-solid fa-folder-tree" aria-hidden="true"></i></div>
                     <div class="stat-number">{{ counts.total }}</div>
                     <div class="stat-label">{{ t.total_docs }}</div>
                 </div>
@@ -45,7 +47,7 @@
 
             <div class="col-md-6 col-xl-2">
                 <div class="stat-card">
-                    <div class="stat-icon"><i class="fa-solid fa-building-shield"></i></div>
+                    <div class="stat-icon"><i class="fa-solid fa-building-shield" aria-hidden="true"></i></div>
                     <div class="stat-number">{{ counts.government }}</div>
                     <div class="stat-label">{{ t.government }}</div>
                 </div>
@@ -53,7 +55,7 @@
 
             <div class="col-md-6 col-xl-2">
                 <div class="stat-card">
-                    <div class="stat-icon"><i class="fa-solid fa-notes-medical"></i></div>
+                    <div class="stat-icon"><i class="fa-solid fa-notes-medical" aria-hidden="true"></i></div>
                     <div class="stat-number">{{ counts.medical }}</div>
                     <div class="stat-label">{{ t.medical }}</div>
                 </div>
@@ -61,7 +63,7 @@
 
             <div class="col-md-6 col-xl-2">
                 <div class="stat-card">
-                    <div class="stat-icon"><i class="fa-solid fa-house-lock"></i></div>
+                    <div class="stat-icon"><i class="fa-solid fa-house-lock" aria-hidden="true"></i></div>
                     <div class="stat-number">{{ counts.property }}</div>
                     <div class="stat-label">{{ t.property }}</div>
                 </div>
@@ -69,18 +71,20 @@
 
             <div class="col-md-6 col-xl-2">
                 <div class="stat-card">
-                    <div class="stat-icon"><i class="fa-solid fa-id-card"></i></div>
+                    <div class="stat-icon"><i class="fa-solid fa-id-card" aria-hidden="true"></i></div>
                     <div class="stat-number">{{ counts.personal }}</div>
                     <div class="stat-label">{{ t.personal }}</div>
                 </div>
             </div>
 
             <div class="col-md-6 col-xl-2">
-                <div class="stat-card {% if pin_verified %}stat-card-success{% endif %}">
-                    <div class="stat-icon"><i class="fa-solid fa-shield-halved"></i></div>
-                    <div class="stat-number">{% if pin_verified %}ON{% else %}OFF{% endif %}</div>
+                <div class="stat-card security-status-card {% if pin_verified %}stat-card-success{% endif %}">
+                    <div class="stat-icon"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></div>
+                    <div class="stat-number stat-word">
+                        {% if pin_verified %}{{ t.pin_verified_temporarily }}{% else %}{{ t.pin_verification_required }}{% endif %}
+                    </div>
                     <div class="stat-label">
-                        {% if pin_verified %}{{ t.pin_verified }}{% else %}{{ t.security_layer }}{% endif %}
+                        {% if pin_verified %}{{ t.temporarily_unlocked }}{% else %}{{ t.verify_to_access }}{% endif %}
                     </div>
                 </div>
             </div>
@@ -88,36 +92,38 @@
 
         <div class="dashboard-box">
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                <h3 class="dashboard-section-title mb-0">{{ t.recent_documents }}</h3>
-                <a href="/documents?lang={{ lang }}" class="btn btn-outline-light btn-sm">
+                <h2 class="dashboard-section-title mb-0">{{ t.recent_documents }}</h2>
+                <a href="{{ localized_url_for('documents.documents', lang=lang) }}" class="btn btn-outline-light btn-sm">
                     {{ t.all_documents }}
                 </a>
             </div>
 
             {% if recent_documents %}
-                <div class="table-responsive">
-                    <table class="table table-dark table-bordered align-middle">
+                <div class="table-responsive document-table-wrap">
+                    <table class="table table-dark table-bordered align-middle document-table">
                         <thead>
                             <tr>
-                                <th>{{ t.title }}</th>
-                                <th>{{ t.category }}</th>
-                                <th>{{ t.upload_date }}</th>
-                                <th>{{ t.actions }}</th>
+                                <th scope="col">{{ t.title }}</th>
+                                <th scope="col">{{ t.category }}</th>
+                                <th scope="col">{{ t.upload_date }}</th>
+                                <th scope="col">{{ t.actions }}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for doc in recent_documents %}
                             <tr>
                                 <td>{{ doc.title }}</td>
-                                <td>{{ doc.category }}</td>
-                                <td>{{ doc.upload_date.strftime('%Y-%m-%d %H:%M') }}</td>
-                                <td class="d-flex gap-2 flex-wrap">
-                                    <a href="/documents/download/{{ doc.id }}?lang={{ lang }}" class="btn btn-success btn-sm">
-                                        {{ t.download }}
-                                    </a>
-                                    <a href="/documents/edit/{{ doc.id }}?lang={{ lang }}" class="btn btn-warning btn-sm">
-                                        {{ t.edit }}
-                                    </a>
+                                <td>{{ category_label(doc.category, lang) }}</td>
+                                <td>{{ format_upload_date(doc.upload_date, lang) }}</td>
+                                <td>
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        <a href="{{ localized_url_for('documents.download_document', document_id=doc.id, lang=lang) }}" class="btn btn-success btn-sm">
+                                            {{ t.download }}
+                                        </a>
+                                        <a href="{{ localized_url_for('documents.edit_document', document_id=doc.id, lang=lang) }}" class="btn btn-warning btn-sm">
+                                            {{ t.edit }}
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -126,9 +132,12 @@
                 </div>
             {% else %}
                 <div class="empty-dashboard-state">
-                    <i class="fa-solid fa-folder-open empty-state-icon"></i>
-                    <h4 class="mt-3">{{ t.documents }}</h4>
-                    <p class="text-secondary">No documents uploaded yet.</p>
+                    <i class="fa-solid fa-folder-open empty-state-icon" aria-hidden="true"></i>
+                    <h2 class="mt-3 h4">{{ t.documents }}</h2>
+                    <p class="text-secondary">{{ t.no_documents_yet }}</p>
+                    <a href="{{ localized_url_for('documents.upload', lang=lang) }}" class="btn malath-btn">
+                        {{ t.start_upload }}
+                    </a>
                 </div>
             {% endif %}
         </div>

@@ -3,39 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ t.brand }}</title>
+    <title>{% block title %}{{ t.brand }}{% endblock %}</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9Oer+R4Hn2EtBEx1aYdCDL6gSxndPD3yN1p5+sn5Z9T" crossorigin="anonymous">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body class="page-enter {{ 'rtl-layout' if lang == 'ar' else '' }}">
+    <a class="skip-link" href="#main-content">{{ t.skip_to_content }}</a>
 
-    <nav class="navbar navbar-expand-lg malath-navbar">
+    <nav class="navbar navbar-expand-lg malath-navbar" aria-label="{{ t.main_navigation }}">
         <div class="container">
-            <a class="navbar-brand fw-bold d-flex align-items-center gap-2 nav-link-animated" href="/dashboard?lang={{ lang }}">
-                <i class="fa-solid fa-shield-halved brand-shield"></i>
+            <a class="navbar-brand fw-bold d-flex align-items-center gap-2 nav-link-animated" href="{{ localized_url_for('main.dashboard' if current_user.is_authenticated else 'main.index', lang=lang) }}">
+                <i class="fa-solid fa-shield-halved brand-shield" aria-hidden="true"></i>
                 {% if lang == 'ar' %}
-                    <span class="brand-ar">ملاذ</span>
+                    <span class="brand-ar">{{ t.brand_ar }}</span>
                 {% else %}
                     <span class="brand-en">{{ t.brand }}</span>
                 {% endif %}
             </a>
 
             <div class="d-flex align-items-center gap-2 flex-wrap">
-                <a class="btn btn-outline-light btn-sm nav-link-animated" href="?lang={{ 'ar' if lang == 'en' else 'en' }}">
-                    <i class="fa-solid fa-language me-1"></i>{{ t.language }}
+                <a class="btn btn-outline-light btn-sm nav-link-animated" href="{{ switch_language_url('ar' if lang == 'en' else 'en') }}" aria-label="{{ t.language_switch }}">
+                    <i class="fa-solid fa-language me-1" aria-hidden="true"></i>{{ t.language }}
                 </a>
 
                 {% if current_user.is_authenticated %}
-                    <a class="btn btn-light btn-sm nav-link-animated" href="/dashboard?lang={{ lang }}">{{ t.dashboard }}</a>
-                    <form method="POST" action="{{ url_for('auth.logout', lang=lang) }}" class="d-inline">
+                    <a class="btn btn-light btn-sm nav-link-animated" href="{{ localized_url_for('main.dashboard', lang=lang) }}">{{ t.dashboard }}</a>
+                    <form method="POST" action="{{ localized_url_for('auth.logout', lang=lang) }}" class="d-inline" data-prevent-double-submit>
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-success btn-sm nav-link-animated">{{ t.logout }}</button>
+                        <button type="submit" class="btn btn-success btn-sm nav-link-animated" data-loading-text="{{ t.submitting }}">{{ t.logout }}</button>
                     </form>
                 {% else %}
-                    <a class="btn btn-light btn-sm nav-link-animated" href="/login?lang={{ lang }}">{{ t.login }}</a>
-                    <a class="btn btn-success btn-sm nav-link-animated" href="/register?lang={{ lang }}">{{ t.register }}</a>
+                    <a class="btn btn-light btn-sm nav-link-animated" href="{{ localized_url_for('auth.login', lang=lang) }}">{{ t.login }}</a>
+                    <a class="btn btn-success btn-sm nav-link-animated" href="{{ localized_url_for('auth.register', lang=lang) }}">{{ t.register }}</a>
                 {% endif %}
             </div>
         </div>
@@ -45,16 +46,18 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="{{ 'alert' if category in ['danger', 'warning'] else 'status' }}" aria-live="{{ 'assertive' if category in ['danger', 'warning'] else 'polite' }}">
                         {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
     </div>
 
-    {% block content %}{% endblock %}
+    <main id="main-content" tabindex="-1">
+        {% block content %}{% endblock %}
+    </main>
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -81,10 +84,27 @@
                     }, 250);
                 });
             });
+
+            const guardedForms = document.querySelectorAll("form[data-prevent-double-submit]");
+            guardedForms.forEach(form => {
+                form.addEventListener("submit", function (event) {
+                    if (form.dataset.submitted === "true") {
+                        event.preventDefault();
+                        return;
+                    }
+                    form.dataset.submitted = "true";
+                    const submitButton = form.querySelector("button[type='submit']");
+                    if (submitButton) {
+                        submitButton.setAttribute("aria-busy", "true");
+                        submitButton.dataset.originalText = submitButton.innerHTML;
+                        submitButton.innerHTML = submitButton.dataset.loadingText || "{{ t.submitting }}";
+                        submitButton.disabled = true;
+                    }
+                });
+            });
         });
     </script>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
 </html>

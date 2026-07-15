@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
+{% block title %}{{ t.brand }} | {{ t.hero_title }}{% endblock %}
+
 {% block content %}
 <section class="hero-section">
     <div class="container">
@@ -28,12 +30,12 @@
                     </div>
 
                     {% if current_user.is_authenticated %}
-                        <a id="getStartedBtn" href="/dashboard?lang={{ lang }}" class="btn btn-success btn-lg mt-4 pulse-btn">
-                            <i class="fa-solid fa-gauge-high me-2"></i>{{ t.dashboard }}
+                        <a id="getStartedBtn" href="{{ localized_url_for('main.dashboard', lang=lang) }}" class="btn btn-success btn-lg mt-4 pulse-btn">
+                            <i class="fa-solid fa-gauge-high me-2" aria-hidden="true"></i>{{ t.dashboard }}
                         </a>
                     {% else %}
-                        <a id="getStartedBtn" href="/login?lang={{ lang }}" class="btn btn-success btn-lg mt-4 pulse-btn">
-                            <i class="fa-solid fa-arrow-right-to-bracket me-2"></i>{{ t.get_started }}
+                        <a id="getStartedBtn" href="{{ localized_url_for('auth.login', lang=lang) }}" class="btn btn-success btn-lg mt-4 pulse-btn">
+                            <i class="fa-solid fa-arrow-right-to-bracket me-2" aria-hidden="true"></i>{{ t.get_started }}
                         </a>
                     {% endif %}
                 </div>
@@ -55,12 +57,12 @@
                     </div>
 
                     {% if current_user.is_authenticated %}
-                        <a id="getStartedBtn" href="/dashboard?lang={{ lang }}" class="btn btn-success btn-lg mt-4 pulse-btn">
-                            <i class="fa-solid fa-gauge-high me-2"></i>{{ t.dashboard }}
+                        <a id="getStartedBtn" href="{{ localized_url_for('main.dashboard', lang=lang) }}" class="btn btn-success btn-lg mt-4 pulse-btn">
+                            <i class="fa-solid fa-gauge-high me-2" aria-hidden="true"></i>{{ t.dashboard }}
                         </a>
                     {% else %}
-                        <a id="getStartedBtn" href="/login?lang={{ lang }}" class="btn btn-success btn-lg mt-4 pulse-btn">
-                            <i class="fa-solid fa-arrow-right-to-bracket me-2"></i>{{ t.get_started }}
+                        <a id="getStartedBtn" href="{{ localized_url_for('auth.login', lang=lang) }}" class="btn btn-success btn-lg mt-4 pulse-btn">
+                            <i class="fa-solid fa-arrow-right-to-bracket me-2" aria-hidden="true"></i>{{ t.get_started }}
                         </a>
                     {% endif %}
                 </div>

@@ -5,7 +5,15 @@ from flask import Flask
 
 from .config import Config
 from .extensions import db, login_manager
-from .i18n import get_lang, get_translations
+from .i18n import (
+    category_label,
+    format_file_size,
+    format_upload_date,
+    get_lang,
+    get_translations,
+    localized_url_for,
+    switch_language_url,
+)
 from .security import CSRFError, generate_csrf_token, validate_csrf_token
 
 
@@ -57,7 +65,14 @@ def create_app(config_object=None):
 
     @app.context_processor
     def inject_globals():
-        return {"current_lang": get_lang()}
+        return {
+            "category_label": category_label,
+            "current_lang": get_lang(),
+            "format_file_size": format_file_size,
+            "format_upload_date": format_upload_date,
+            "localized_url_for": localized_url_for,
+            "switch_language_url": switch_language_url,
+        }
 
     @app.errorhandler(CSRFError)
     def handle_csrf_error(error):

@@ -1,40 +1,45 @@
 {% extends 'base.html' %}
 
+{% block title %}{{ t.update_document }} | {{ t.brand }}{% endblock %}
+
 {% block content %}
 <section class="py-5">
     <div class="container">
         <div class="dashboard-panel fade-in-up">
-            <h2 class="login-title mb-2">{{ t.update_document }}</h2>
+            <h1 class="login-title mb-2">{{ t.update_document }}</h1>
             <p class="login-subtitle">{{ document.original_filename }}</p>
 
-            <form method="POST">
+            <form method="POST" aria-label="{{ t.update_document }}" data-prevent-double-submit>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label">{{ t.title }}</label>
-                        <input type="text" name="title" class="form-control" value="{{ document.title }}" required>
+                        <label class="form-label" for="title">{{ t.title }}</label>
+                        <input type="text" id="title" name="title" class="form-control" value="{{ form_data.title }}" aria-invalid="{{ 'true' if field_errors.title else 'false' }}" aria-describedby="{{ 'title-error' if field_errors.title else '' }}" required>
+                        {% if field_errors.title %}
+                            <p class="field-error" id="title-error">{{ field_errors.title }}</p>
+                        {% endif %}
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label">{{ t.category }}</label>
-                        <select name="category" class="form-control" required>
-                            <option value="government" {% if document.category == 'government' %}selected{% endif %}>{{ t.government }}</option>
-                            <option value="medical" {% if document.category == 'medical' %}selected{% endif %}>{{ t.medical }}</option>
-                            <option value="property" {% if document.category == 'property' %}selected{% endif %}>{{ t.property }}</option>
-                            <option value="personal" {% if document.category == 'personal' %}selected{% endif %}>{{ t.personal }}</option>
+                        <label class="form-label" for="category">{{ t.category }}</label>
+                        <select id="category" name="category" class="form-control" required>
+                            <option value="government" {% if form_data.category == 'government' %}selected{% endif %}>{{ t.government }}</option>
+                            <option value="medical" {% if form_data.category == 'medical' %}selected{% endif %}>{{ t.medical }}</option>
+                            <option value="property" {% if form_data.category == 'property' %}selected{% endif %}>{{ t.property }}</option>
+                            <option value="personal" {% if form_data.category == 'personal' %}selected{% endif %}>{{ t.personal }}</option>
                         </select>
                     </div>
 
                     <div class="col-12">
-                        <label class="form-label">{{ t.description }}</label>
-                        <textarea name="description" rows="4" class="form-control">{{ document.description or '' }}</textarea>
+                        <label class="form-label" for="description">{{ t.description }}</label>
+                        <textarea id="description" name="description" rows="4" class="form-control">{{ form_data.description }}</textarea>
                     </div>
 
                     <div class="col-12 mt-3">
-                        <button type="submit" class="btn malath-btn">
-                            <i class="fa-solid fa-floppy-disk me-2"></i>{{ t.save_changes }}
+                        <button type="submit" class="btn malath-btn" data-loading-text="{{ t.submitting }}">
+                            <i class="fa-solid fa-floppy-disk me-2" aria-hidden="true"></i>{{ t.save_changes }}
                         </button>
-                        <a href="/documents?lang={{ lang }}" class="btn btn-outline-light ms-2">
+                        <a href="{{ localized_url_for('documents.documents', lang=lang) }}" class="btn btn-outline-light ms-2">
                             {{ t.documents }}
                         </a>
                     </div>

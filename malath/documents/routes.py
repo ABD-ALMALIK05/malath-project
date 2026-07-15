@@ -27,26 +27,32 @@ DOCUMENT_CATEGORIES = {"government", "medical", "property", "personal"}
 def upload():
     lang = get_lang()
     t = get_translations(lang)
+    form_data = {"title": "", "category": "personal", "description": ""}
+    field_errors = {}
 
     if request.method == "POST":
         title = request.form.get("title", "").strip()
         category = request.form.get("category", "").strip()
         description = request.form.get("description", "").strip()
         file = request.files.get("file")
+        form_data = {"title": title, "category": category, "description": description}
 
         if not title:
+            field_errors["title"] = t["doc_title_required"]
             flash(t["doc_title_required"], "danger")
-            return redirect(url_for("documents.upload", lang=lang))
+            return render_upload_form(t, lang, form_data, field_errors)
 
         if not file or not file.filename:
+            field_errors["file"] = t["file_required"]
             flash(t["file_required"], "danger")
-            return redirect(url_for("documents.upload", lang=lang))
+            return render_upload_form(t, lang, form_data, field_errors)
 
         try:
             validated_file = validate_upload(file, current_app.config["MAX_CONTENT_LENGTH"])
         except FileValidationError as error:
+            field_errors["file"] = t[error.message_key]
             flash(t[error.message_key], "danger")
-            return redirect(url_for("documents.upload", lang=lang))
+            return render_upload_form(t, lang, form_data, field_errors)
 
         original_filename = secure_filename(file.filename)
         if not original_filename:
@@ -62,7 +68,7 @@ def upload():
         except StorageError:
             current_app.logger.warning("Document upload failed", exc_info=True)
             flash(t["storage_upload_failed"], "danger")
-            return redirect(url_for("documents.upload", lang=lang))
+            return render_upload_form(t, lang, form_data, field_errors)
 
         document = Document(
             title=title,
@@ -87,12 +93,12 @@ def upload():
             except StorageError:
                 current_app.logger.warning("Uploaded object cleanup failed", exc_info=True)
             flash(t["storage_upload_failed"], "danger")
-            return redirect(url_for("documents.upload", lang=lang))
+            return render_upload_form(t, lang, form_data, field_errors)
 
         flash(t["document_uploaded"], "success")
         return redirect(url_for("documents.documents", lang=lang))
 
-    return render_template("upload.html", t=t, lang=lang)
+    return render_upload_form(t, lang, form_data, field_errors)
 
 
 @bp.route("/documents")
@@ -146,15 +152,23 @@ def edit_document(document_id):
     lang = get_lang()
     t = get_translations(lang)
     document = get_owned_document_or_404(document_id)
+    form_data = {
+        "title": document.title,
+        "category": document.category,
+        "description": document.description or "",
+    }
+    field_errors = {}
 
     if request.method == "POST":
         title = request.form.get("title", "").strip()
         category = request.form.get("category", "").strip()
         description = request.form.get("description", "").strip()
+        form_data = {"title": title, "category": category, "description": description}
 
         if not title:
+            field_errors["title"] = t["doc_title_required"]
             flash(t["doc_title_required"], "danger")
-            return redirect(url_for("documents.edit_document", document_id=document.id, lang=lang))
+            return render_edit_form(t, lang, document, form_data, field_errors)
 
         document.title = title
         document.category = category
@@ -164,7 +178,7 @@ def edit_document(document_id):
         flash(t["document_updated"], "success")
         return redirect(url_for("documents.documents", lang=lang))
 
-    return render_template("edit_document.html", t=t, lang=lang, document=document)
+    return render_edit_form(t, lang, document, form_data, field_errors)
 
 
 @bp.route("/documents/delete/<int:document_id>", methods=["POST"])
@@ -210,3 +224,24 @@ def content_type_for(file_type):
     if file_type == "png":
         return "image/png"
     return "image/jpeg"
+
+
+def render_upload_form(t, lang, form_data, field_errors):
+    return render_template(
+        "upload.html",
+        t=t,
+        lang=lang,
+        form_data=form_data,
+        field_errors=field_errors,
+    )
+
+
+def render_edit_form(t, lang, document, form_data, field_errors):
+    return render_template(
+        "edit_document.html",
+        t=t,
+        lang=lang,
+        document=document,
+        form_data=form_data,
+        field_errors=field_errors,
+    )

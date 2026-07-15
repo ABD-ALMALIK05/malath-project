@@ -25,7 +25,9 @@ def pin_required_route(view_func):
         t = get_translations(lang)
         if not is_pin_verified():
             flash(t["enter_pin_first"], "warning")
-            return redirect(url_for("auth.verify_pin", next=request.path, lang=lang))
+            return redirect(
+                url_for("auth.verify_pin", next=request.full_path.rstrip("?"), lang=lang)
+            )
         return view_func(*args, **kwargs)
 
     return wrapper
@@ -39,6 +41,9 @@ def register():
     if current_user.is_authenticated:
         return redirect(url_for("main.dashboard", lang=lang))
 
+    form_data = {"full_name": "", "username": "", "email": ""}
+    field_errors = {}
+
     if request.method == "POST":
         if not check_rate_limit("register", request.remote_addr or "local"):
             return rate_limited_response(t, lang)
@@ -48,26 +53,32 @@ def register():
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "").strip()
         pin = request.form.get("pin", "").strip()
+        form_data = {"full_name": full_name, "username": username, "email": email}
 
         if not full_name or not username or not email or not password or not pin:
+            field_errors["form"] = t["all_fields_required"]
             flash(t["all_fields_required"], "danger")
-            return redirect(url_for("auth.register", lang=lang))
+            return render_register_form(t, lang, form_data, field_errors)
 
         if not pin.isdigit() or len(pin) != 6:
+            field_errors["pin"] = t["pin_required"]
             flash(t["pin_required"], "danger")
-            return redirect(url_for("auth.register", lang=lang))
+            return render_register_form(t, lang, form_data, field_errors)
 
         if not password_meets_policy(password):
+            field_errors["password"] = t["password_policy"]
             flash(t["password_policy"], "danger")
-            return redirect(url_for("auth.register", lang=lang))
+            return render_register_form(t, lang, form_data, field_errors)
 
         if User.query.filter_by(username=username).first():
+            field_errors["username"] = t["username_exists"]
             flash(t["username_exists"], "danger")
-            return redirect(url_for("auth.register", lang=lang))
+            return render_register_form(t, lang, form_data, field_errors)
 
         if User.query.filter_by(email=email).first():
+            field_errors["email"] = t["email_exists"]
             flash(t["email_exists"], "danger")
-            return redirect(url_for("auth.register", lang=lang))
+            return render_register_form(t, lang, form_data, field_errors)
 
         user = User(full_name=full_name, username=username, email=email)
         user.set_password(password)
@@ -79,7 +90,7 @@ def register():
         flash(t["register_success"], "success")
         return redirect(url_for("auth.login", lang=lang))
 
-    return render_template("register.html", t=t, lang=lang)
+    return render_register_form(t, lang, form_data, field_errors)
 
 
 @bp.route("/login", methods=["GET", "POST"])
@@ -91,17 +102,22 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for("main.dashboard", lang=lang))
 
+    form_data = {"identifier": ""}
+    field_errors = {}
+
     if request.method == "POST":
         identifier = request.form.get("identifier", "").strip()
         password = request.form.get("password", "").strip()
+        form_data = {"identifier": identifier}
         rate_key = f"{request.remote_addr or 'local'}:{identifier.lower()}"
 
         if not check_rate_limit("login", rate_key):
             return rate_limited_response(t, lang)
 
         if not identifier or not password:
+            field_errors["form"] = t["all_fields_required"]
             flash(t["all_fields_required"], "danger")
-            return redirect(url_for("auth.login", next=next_url, lang=lang))
+            return render_login_form(t, lang, next_url, form_data, field_errors)
 
         user = User.query.filter(
             or_(User.email == identifier.lower(), User.username == identifier)
@@ -114,9 +130,10 @@ def login():
             return redirect(next_url)
 
         flash(t["invalid_credentials"], "danger")
-        return redirect(url_for("auth.login", next=next_url, lang=lang))
+        field_errors["identifier"] = t["invalid_credentials"]
+        return render_login_form(t, lang, next_url, form_data, field_errors)
 
-    return render_template("login.html", t=t, lang=lang)
+    return render_login_form(t, lang, next_url, form_data, field_errors)
 
 
 @bp.route("/verify-pin", methods=["GET", "POST"])
@@ -127,6 +144,7 @@ def verify_pin():
     next_url = safe_redirect_target(request.args.get("next"), "documents.documents", lang=lang)
 
     if request.method == "POST":
+        field_errors = {}
         rate_key = f"{request.remote_addr or 'local'}:{current_user.id}"
         if not check_rate_limit("pin", rate_key):
             return rate_limited_response(t, lang)
@@ -134,8 +152,9 @@ def verify_pin():
         pin = request.form.get("pin", "").strip()
 
         if not pin.isdigit() or len(pin) != 6:
+            field_errors["pin"] = t["pin_required"]
             flash(t["pin_required"], "danger")
-            return redirect(url_for("auth.verify_pin", next=next_url, lang=lang))
+            return render_pin_form(t, lang, next_url, field_errors)
 
         if current_user.check_pin(pin):
             mark_pin_verified()
@@ -143,8 +162,10 @@ def verify_pin():
             return redirect(next_url)
 
         flash(t["pin_invalid"], "danger")
+        field_errors["pin"] = t["pin_invalid"]
+        return render_pin_form(t, lang, next_url, field_errors)
 
-    return render_template("verify_pin.html", t=t, lang=lang, next_url=next_url)
+    return render_pin_form(t, lang, next_url, {})
 
 
 @bp.route("/logout", methods=["POST"])
@@ -177,4 +198,35 @@ def rate_limited_response(t, lang):
             message=t["too_many_attempts"],
         ),
         429,
+    )
+
+
+def render_register_form(t, lang, form_data, field_errors):
+    return render_template(
+        "register.html",
+        t=t,
+        lang=lang,
+        form_data=form_data,
+        field_errors=field_errors,
+    )
+
+
+def render_login_form(t, lang, next_url, form_data, field_errors):
+    return render_template(
+        "login.html",
+        t=t,
+        lang=lang,
+        next_url=next_url,
+        form_data=form_data,
+        field_errors=field_errors,
+    )
+
+
+def render_pin_form(t, lang, next_url, field_errors):
+    return render_template(
+        "verify_pin.html",
+        t=t,
+        lang=lang,
+        next_url=next_url,
+        field_errors=field_errors,
     )

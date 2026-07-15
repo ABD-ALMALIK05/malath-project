@@ -1,4 +1,7 @@
-from flask import request
+from datetime import UTC
+
+from flask import request, url_for
+from werkzeug.routing import BuildError
 
 TRANSLATIONS = {
     "en": {
@@ -87,6 +90,26 @@ TRANSLATIONS = {
         "storage_download_failed": "The download link could not be created right now. Please try again.",
         "storage_delete_failed": "The document could not be deleted right now. Please try again.",
         "pin_verified": "PIN Verified",
+        "pin_verified_temporarily": "PIN verified temporarily",
+        "pin_verification_required": "PIN verification required",
+        "skip_to_content": "Skip to content",
+        "main_navigation": "Main navigation",
+        "language_switch": "Switch language",
+        "required_field": "Required",
+        "field_error": "Field error",
+        "file_requirements": "PDF, PNG, JPG, or JPEG. Maximum size: 5 MB.",
+        "browse_file": "Browse File",
+        "drag_drop_file": "Drag and drop your file here",
+        "selected_file": "Selected file",
+        "confirm_delete": "Are you sure you want to delete this document?",
+        "no_documents": "No documents found in this category.",
+        "no_documents_yet": "No documents uploaded yet.",
+        "start_upload": "Upload your first document",
+        "file_size": "File Size",
+        "temporarily_unlocked": "Document access is temporarily unlocked.",
+        "verify_to_access": "Verify your PIN to access sensitive documents.",
+        "submitting": "Please wait...",
+        "page_error": "Something needs your attention.",
     },
     "ar": {
         "brand": "Malath",
@@ -174,6 +197,26 @@ TRANSLATIONS = {
         "storage_download_failed": "تعذر إنشاء رابط التنزيل الآن. يرجى المحاولة مرة أخرى.",
         "storage_delete_failed": "تعذر حذف الوثيقة الآن. يرجى المحاولة مرة أخرى.",
         "pin_verified": "تم تأكيد الرقم السري",
+        "pin_verified_temporarily": "تم تأكيد الرقم السري مؤقتًا",
+        "pin_verification_required": "تأكيد الرقم السري مطلوب",
+        "skip_to_content": "تجاوز إلى المحتوى",
+        "main_navigation": "التنقل الرئيسي",
+        "language_switch": "تغيير اللغة",
+        "required_field": "مطلوب",
+        "field_error": "خطأ في الحقل",
+        "file_requirements": "PDF أو PNG أو JPG أو JPEG. الحد الأقصى: 5 ميجابايت.",
+        "browse_file": "استعراض الملف",
+        "drag_drop_file": "اسحب الملف وأفلته هنا",
+        "selected_file": "الملف المحدد",
+        "confirm_delete": "هل أنت متأكد من حذف هذه الوثيقة؟",
+        "no_documents": "لا توجد وثائق في هذا التصنيف.",
+        "no_documents_yet": "لم يتم رفع أي وثائق بعد.",
+        "start_upload": "ارفع أول وثيقة",
+        "file_size": "حجم الملف",
+        "temporarily_unlocked": "الوصول إلى الوثائق مفتوح مؤقتًا.",
+        "verify_to_access": "أكد الرقم السري للوصول إلى الوثائق الحساسة.",
+        "submitting": "يرجى الانتظار...",
+        "page_error": "هناك أمر يحتاج إلى انتباهك.",
     },
 }
 
@@ -189,3 +232,54 @@ def get_lang():
 
 def get_translations(lang=None):
     return TRANSLATIONS[lang or get_lang()]
+
+
+def localized_url_for(endpoint, lang=None, **values):
+    values.setdefault("lang", lang or get_lang())
+    return url_for(endpoint, **values)
+
+
+def switch_language_url(target_lang):
+    endpoint = request.endpoint or "main.index"
+    values = dict(request.view_args or {})
+    values.update(request.args.to_dict())
+    values["lang"] = target_lang
+    try:
+        return url_for(endpoint, **values)
+    except BuildError:
+        return url_for("main.index", lang=target_lang)
+
+
+def category_label(category, lang=None):
+    translations = get_translations(lang)
+    return translations.get(category, category)
+
+
+def format_file_size(size):
+    try:
+        size = int(size)
+    except (TypeError, ValueError):
+        return "0 B"
+
+    units = ("B", "KB", "MB", "GB")
+    value = float(size)
+    for unit in units:
+        if value < 1024 or unit == units[-1]:
+            if unit == "B":
+                return f"{int(value)} {unit}"
+            return f"{value:.1f} {unit}"
+        value /= 1024
+
+
+def format_upload_date(upload_date, lang=None):
+    if upload_date is None:
+        return ""
+
+    if upload_date.tzinfo is None:
+        localized = upload_date
+    else:
+        localized = upload_date.astimezone(UTC)
+
+    if (lang or get_lang()) == "ar":
+        return localized.strftime("%Y-%m-%d %H:%M")
+    return localized.strftime("%b %d, %Y %H:%M")

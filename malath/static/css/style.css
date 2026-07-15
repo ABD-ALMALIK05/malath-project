@@ -1,3 +1,12 @@
+:root {
+    --malath-panel: rgba(255, 255, 255, 0.05);
+    --malath-border: rgba(25, 135, 84, 0.25);
+    --malath-green: #198754;
+    --malath-green-bright: #20c06d;
+    --malath-focus: #f4d03f;
+    --malath-muted: #bcbcbc;
+}
+
 body {
     background: radial-gradient(circle at top, #111111 0%, #090909 45%, #050505 100%);
     color: #ffffff;
@@ -637,5 +646,143 @@ textarea.form-control::placeholder {
     .small-image-card {
         margin-top: 30px;
         max-width: 360px;
+    }
+}
+
+/* Accessibility and responsive refinements */
+.skip-link {
+    position: absolute;
+    inset-inline-start: 16px;
+    top: 12px;
+    z-index: 2000;
+    transform: translateY(-140%);
+    background: #ffffff;
+    color: #000000;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-weight: 800;
+    text-decoration: none;
+    transition: transform 0.2s ease;
+}
+
+.skip-link:focus {
+    transform: translateY(0);
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+.btn:focus-visible {
+    outline: 3px solid var(--malath-focus);
+    outline-offset: 3px;
+    box-shadow: none;
+}
+
+.btn,
+.form-control,
+.input-group-text,
+.filter-chip {
+    min-height: 44px;
+}
+
+.dashboard-title,
+.login-title,
+.dashboard-main-title,
+.hero-title {
+    overflow-wrap: anywhere;
+}
+
+.form-help {
+    color: var(--malath-muted);
+    font-size: 0.92rem;
+    margin: 8px 0 0;
+}
+
+.field-error {
+    color: #ffb4b4;
+    font-size: 0.92rem;
+    font-weight: 700;
+    margin: 8px 0 0;
+}
+
+.form-control[aria-invalid="true"] {
+    border-color: #dc3545;
+}
+
+.status-code-label {
+    color: var(--malath-green-bright);
+    font-size: 3rem;
+    font-weight: 900;
+    margin-bottom: 8px;
+}
+
+.document-table-wrap {
+    border-radius: 12px;
+}
+
+.document-table {
+    min-width: 760px;
+}
+
+.document-table th,
+.document-table td {
+    vertical-align: middle;
+}
+
+.stat-word {
+    font-size: 1rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.security-status-card {
+    min-height: 100%;
+}
+
+.upload-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+
+.upload-native-input {
+    max-width: 420px;
+}
+
+.selected-file-box[hidden] {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .navbar-brand {
+        font-size: 1.35rem;
+    }
+
+    .document-table {
+        min-width: 680px;
+    }
+
+    .btn {
+        white-space: normal;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    body,
+    body.page-loaded,
+    body.page-exit,
+    .floating-card {
+        opacity: 1;
+        transform: none;
     }
 }
