@@ -37,6 +37,8 @@ addopts = [
 branch = true
 source = ["malath"]
 omit = [
+    "malath/static/*",
+    "malath/templates/*",
     "tests/*",
 ]
 

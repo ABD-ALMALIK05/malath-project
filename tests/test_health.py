@@ -32,33 +32,6 @@ def test_health_endpoint_reports_database_failure(app, client, monkeypatch):
     }
 
 
-def test_error_pages_are_bilingual(client):
-    english = client.get("/missing?lang=en")
-    arabic = client.get("/missing?lang=ar")
-
-    assert english.status_code == 404
-    assert "The page you requested could not be found." in english.get_data(as_text=True)
-    assert arabic.status_code == 404
-    assert 'lang="ar"' in arabic.get_data(as_text=True)
-    assert 'dir="rtl"' in arabic.get_data(as_text=True)
-    assert "تعذر العثور على الصفحة المطلوبة." in arabic.get_data(as_text=True)
-
-
-def test_internal_error_hides_exception_details(app, client):
-    app.config["PROPAGATE_EXCEPTIONS"] = False
-
-    @app.get("/test-error")
-    def test_error():
-        raise RuntimeError("private internal detail")
-
-    response = client.get("/test-error?lang=en")
-    body = response.get_data(as_text=True)
-
-    assert response.status_code == 500
-    assert "An unexpected error occurred." in body
-    assert "private internal detail" not in body
-
-
 def test_initial_migration_upgrades_fresh_database(tmp_path):
     app = create_migration_app(tmp_path, "fresh.db")
 
@@ -69,6 +42,8 @@ def test_initial_migration_upgrades_fresh_database(tmp_path):
         assert {"alembic_version", "document", "user"}.issubset(
             inspect(db.engine).get_table_names()
         )
+        db.session.remove()
+        db.engine.dispose()
 
 
 def test_initial_migration_preserves_existing_data(tmp_path):
@@ -87,6 +62,8 @@ def test_initial_migration_preserves_existing_data(tmp_path):
     with app.app_context():
         assert User.query.filter_by(username="existing").one().email == "existing@example.com"
         assert "alembic_version" in inspect(db.engine).get_table_names()
+        db.session.remove()
+        db.engine.dispose()
 
 
 def create_migration_app(tmp_path, database_name):

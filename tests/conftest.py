@@ -1,7 +1,9 @@
+import io
 import re
 import time
 
 import pytest
+from PIL import Image
 
 from malath import create_app
 from malath.extensions import db
@@ -41,12 +43,46 @@ def app(tmp_path):
         yield app
         db.session.remove()
         db.drop_all()
+        db.engine.dispose()
     reset_rate_limits()
 
 
 @pytest.fixture
 def client(app):
     return app.test_client()
+
+
+@pytest.fixture
+def database(app):
+    return db
+
+
+@pytest.fixture
+def registered_user(app):
+    return create_user()
+
+
+@pytest.fixture
+def logged_in_client(client, registered_user):
+    response = login(client)
+    assert response.status_code == 302
+    return client
+
+
+@pytest.fixture
+def pin_verified_client(logged_in_client):
+    mark_pin_verified(logged_in_client)
+    return logged_in_client
+
+
+@pytest.fixture
+def valid_pdf_upload():
+    return pdf_upload_bytes(), "document.pdf"
+
+
+@pytest.fixture
+def valid_image_upload():
+    return image_upload_bytes(), "document.png"
 
 
 def extract_csrf_token(response):
@@ -80,3 +116,39 @@ def login(client, identifier="alice", password="Password1", path="/login"):
 def mark_pin_verified(client):
     with client.session_transaction() as session:
         session[PIN_VERIFIED_AT_SESSION_KEY] = time.time()
+
+
+def pdf_upload_bytes():
+    return b"%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n"
+
+
+def image_upload_bytes(image_format="PNG"):
+    image = Image.new("RGB", (2, 2), color=(194, 31, 48))
+    output = io.BytesIO()
+    image.save(output, format=image_format)
+    return output.getvalue()
+
+
+def upload_document(
+    client,
+    content,
+    filename,
+    *,
+    title="Passport",
+    category="personal",
+    description="Travel document",
+    follow_redirects=True,
+):
+    token = get_csrf_token(client, "/upload")
+    return client.post(
+        "/upload",
+        data={
+            "title": title,
+            "category": category,
+            "description": description,
+            "file": (io.BytesIO(content), filename),
+            "csrf_token": token,
+        },
+        content_type="multipart/form-data",
+        follow_redirects=follow_redirects,
+    )
