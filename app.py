@@ -5,42 +5,42 @@ from functools import wraps
 
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
+from flask_login import (
+    LoginManager,
+    UserMixin,
+    login_user,
+    logout_user,
+    login_required,
+    current_user,
+)
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from sqlalchemy import or_
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from sqlalchemy import or_
 
+from config import AWS_ACCESS_KEY, AWS_BUCKET_NAME, AWS_REGION, AWS_SECRET_KEY, SECRET_KEY
 
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'malath_secret_key'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///malath.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-
-from dotenv import load_dotenv
-load_dotenv()
-
-from config import AWS_ACCESS_KEY, AWS_SECRET_KEY, AWS_BUCKET_NAME, AWS_REGION
-
+app.config["SECRET_KEY"] = SECRET_KEY or os.urandom(32)
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///malath.db"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # ========= AWS CONFIG =========
-# ضع المفاتيح الجديدة هنا أو انقلها إلى config.py
-app.config['AWS_ACCESS_KEY'] = AWS_ACCESS_KEY
-app.config['AWS_SECRET_KEY'] = AWS_SECRET_KEY
-app.config['AWS_BUCKET_NAME'] = AWS_BUCKET_NAME
-app.config['AWS_REGION'] = AWS_REGION
+app.config["AWS_ACCESS_KEY"] = AWS_ACCESS_KEY
+app.config["AWS_SECRET_KEY"] = AWS_SECRET_KEY
+app.config["AWS_BUCKET_NAME"] = AWS_BUCKET_NAME
+app.config["AWS_REGION"] = AWS_REGION
 
 # ========= LOCAL CONFIG =========
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
-ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
+UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
+ALLOWED_EXTENSIONS = {"pdf", "png", "jpg", "jpeg"}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+app.config["MAX_CONTENT_LENGTH"] = MAX_FILE_SIZE
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -49,14 +49,14 @@ db = SQLAlchemy(app)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login'
+login_manager.login_view = "login"
 
 # ========= S3 CLIENT =========
 s3 = boto3.client(
-    's3',
-    aws_access_key_id=app.config['AWS_ACCESS_KEY'],
-    aws_secret_access_key=app.config['AWS_SECRET_KEY'],
-    region_name=app.config['AWS_REGION']
+    "s3",
+    aws_access_key_id=app.config["AWS_ACCESS_KEY"],
+    aws_secret_access_key=app.config["AWS_SECRET_KEY"],
+    region_name=app.config["AWS_REGION"],
 )
 
 translations = {
@@ -136,7 +136,7 @@ translations = {
         "update_document": "Update Document",
         "view_archive": "View Archive",
         "security_layer": "Security Layer",
-        "pin_verified": "PIN Verified"
+        "pin_verified": "PIN Verified",
     },
     "ar": {
         "brand": "Malath",
@@ -214,8 +214,8 @@ translations = {
         "update_document": "تحديث الوثيقة",
         "view_archive": "عرض الأرشيف",
         "security_layer": "طبقة الحماية",
-        "pin_verified": "تم تأكيد الرقم السري"
-    }
+        "pin_verified": "تم تأكيد الرقم السري",
+    },
 }
 
 
@@ -227,7 +227,7 @@ def get_lang():
 
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def pin_required_route(view_func):
@@ -235,10 +235,11 @@ def pin_required_route(view_func):
     def wrapper(*args, **kwargs):
         lang = get_lang()
         t = translations[lang]
-        if not session.get('pin_verified'):
+        if not session.get("pin_verified"):
             flash(t["enter_pin_first"], "warning")
-            return redirect(url_for('verify_pin', next=request.path, lang=lang))
+            return redirect(url_for("verify_pin", next=request.path, lang=lang))
         return view_func(*args, **kwargs)
+
     return wrapper
 
 
@@ -250,7 +251,9 @@ class User(db.Model, UserMixin):
     password_hash = db.Column(db.String(255), nullable=False)
     pin_hash = db.Column(db.String(255), nullable=False)
 
-    documents = db.relationship('Document', backref='owner', lazy=True, cascade='all, delete-orphan')
+    documents = db.relationship(
+        "Document", backref="owner", lazy=True, cascade="all, delete-orphan"
+    )
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -276,7 +279,7 @@ class Document(db.Model):
     file_type = db.Column(db.String(20), nullable=False)
     file_size = db.Column(db.Integer, nullable=False)
     upload_date = db.Column(db.DateTime, default=datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
 
 @login_manager.user_loader
@@ -293,58 +296,54 @@ def inject_globals():
 def get_category_counts(user_id):
     docs = Document.query.filter_by(user_id=user_id).all()
     return {
-        'total': len(docs),
-        'government': sum(1 for d in docs if d.category == 'government'),
-        'medical': sum(1 for d in docs if d.category == 'medical'),
-        'property': sum(1 for d in docs if d.category == 'property'),
-        'personal': sum(1 for d in docs if d.category == 'personal')
+        "total": len(docs),
+        "government": sum(1 for d in docs if d.category == "government"),
+        "medical": sum(1 for d in docs if d.category == "medical"),
+        "property": sum(1 for d in docs if d.category == "property"),
+        "personal": sum(1 for d in docs if d.category == "personal"),
     }
 
 
-@app.route('/')
+@app.route("/")
 def index():
     lang = get_lang()
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard', lang=lang))
-    return render_template('index.html', t=translations[lang], lang=lang)
+        return redirect(url_for("dashboard", lang=lang))
+    return render_template("index.html", t=translations[lang], lang=lang)
 
 
-@app.route('/register', methods=['GET', 'POST'])
+@app.route("/register", methods=["GET", "POST"])
 def register():
     lang = get_lang()
     t = translations[lang]
 
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard', lang=lang))
+        return redirect(url_for("dashboard", lang=lang))
 
-    if request.method == 'POST':
-        full_name = request.form.get('full_name', '').strip()
-        username = request.form.get('username', '').strip()
-        email = request.form.get('email', '').strip().lower()
-        password = request.form.get('password', '').strip()
-        pin = request.form.get('pin', '').strip()
+    if request.method == "POST":
+        full_name = request.form.get("full_name", "").strip()
+        username = request.form.get("username", "").strip()
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "").strip()
+        pin = request.form.get("pin", "").strip()
 
         if not full_name or not username or not email or not password or not pin:
             flash(t["all_fields_required"], "danger")
-            return redirect(url_for('register', lang=lang))
+            return redirect(url_for("register", lang=lang))
 
         if not pin.isdigit() or len(pin) != 6:
             flash(t["pin_required"], "danger")
-            return redirect(url_for('register', lang=lang))
+            return redirect(url_for("register", lang=lang))
 
         if User.query.filter_by(username=username).first():
             flash(t["username_exists"], "danger")
-            return redirect(url_for('register', lang=lang))
+            return redirect(url_for("register", lang=lang))
 
         if User.query.filter_by(email=email).first():
             flash(t["email_exists"], "danger")
-            return redirect(url_for('register', lang=lang))
+            return redirect(url_for("register", lang=lang))
 
-        user = User(
-            full_name=full_name,
-            username=username,
-            email=email
-        )
+        user = User(full_name=full_name, username=username, email=email)
         user.set_password(password)
         user.set_pin(pin)
 
@@ -352,26 +351,26 @@ def register():
         db.session.commit()
 
         flash(t["register_success"], "success")
-        return redirect(url_for('login', lang=lang))
+        return redirect(url_for("login", lang=lang))
 
-    return render_template('register.html', t=t, lang=lang)
+    return render_template("register.html", t=t, lang=lang)
 
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route("/login", methods=["GET", "POST"])
 def login():
     lang = get_lang()
     t = translations[lang]
 
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard', lang=lang))
+        return redirect(url_for("dashboard", lang=lang))
 
-    if request.method == 'POST':
-        identifier = request.form.get('identifier', '').strip()
-        password = request.form.get('password', '').strip()
+    if request.method == "POST":
+        identifier = request.form.get("identifier", "").strip()
+        password = request.form.get("password", "").strip()
 
         if not identifier or not password:
             flash(t["all_fields_required"], "danger")
-            return redirect(url_for('login', lang=lang))
+            return redirect(url_for("login", lang=lang))
 
         user = User.query.filter(
             or_(User.email == identifier.lower(), User.username == identifier)
@@ -379,104 +378,103 @@ def login():
 
         if user and user.check_password(password):
             login_user(user)
-            session.pop('pin_verified', None)
+            session.pop("pin_verified", None)
             flash(t["login_success"], "success")
-            return redirect(url_for('dashboard', lang=lang))
+            return redirect(url_for("dashboard", lang=lang))
 
         flash(t["invalid_credentials"], "danger")
-        return redirect(url_for('login', lang=lang))
+        return redirect(url_for("login", lang=lang))
 
-    return render_template('login.html', t=t, lang=lang)
+    return render_template("login.html", t=t, lang=lang)
 
 
-@app.route('/verify-pin', methods=['GET', 'POST'])
+@app.route("/verify-pin", methods=["GET", "POST"])
 @login_required
 def verify_pin():
     lang = get_lang()
     t = translations[lang]
-    next_url = request.args.get('next') or url_for('documents', lang=lang)
+    next_url = request.args.get("next") or url_for("documents", lang=lang)
 
-    if request.method == 'POST':
-        pin = request.form.get('pin', '').strip()
+    if request.method == "POST":
+        pin = request.form.get("pin", "").strip()
 
         if not pin.isdigit() or len(pin) != 6:
             flash(t["pin_required"], "danger")
-            return redirect(url_for('verify_pin', next=next_url, lang=lang))
+            return redirect(url_for("verify_pin", next=next_url, lang=lang))
 
         if current_user.check_pin(pin):
-            session['pin_verified'] = True
+            session["pin_verified"] = True
             flash(t["pin_success"], "success")
             return redirect(next_url)
 
         flash(t["pin_invalid"], "danger")
 
-    return render_template('verify_pin.html', t=t, lang=lang, next_url=next_url)
+    return render_template("verify_pin.html", t=t, lang=lang, next_url=next_url)
 
 
-@app.route('/logout')
+@app.route("/logout")
 @login_required
 def logout():
     lang = get_lang()
     t = translations[lang]
     logout_user()
-    session.pop('pin_verified', None)
+    session.pop("pin_verified", None)
     flash(t["logout_success"], "success")
-    return redirect(url_for('login', lang=lang))
+    return redirect(url_for("login", lang=lang))
 
 
-@app.route('/dashboard')
+@app.route("/dashboard")
 @login_required
 def dashboard():
     lang = get_lang()
     t = translations[lang]
     counts = get_category_counts(current_user.id)
     recent_documents = (
-        Document.query
-        .filter_by(user_id=current_user.id)
+        Document.query.filter_by(user_id=current_user.id)
         .order_by(Document.upload_date.desc())
         .limit(5)
         .all()
     )
 
     return render_template(
-        'dashboard.html',
+        "dashboard.html",
         t=t,
         lang=lang,
         counts=counts,
         recent_documents=recent_documents,
-        pin_verified=session.get('pin_verified', False)
+        pin_verified=session.get("pin_verified", False),
     )
 
 
-@app.route('/upload', methods=['GET', 'POST'])
+@app.route("/upload", methods=["GET", "POST"])
 @login_required
 @pin_required_route
 def upload():
     lang = get_lang()
     t = translations[lang]
 
-    if request.method == 'POST':
-        title = request.form.get('title', '').strip()
-        category = request.form.get('category', '').strip()
-        description = request.form.get('description', '').strip()
-        file = request.files.get('file')
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        category = request.form.get("category", "").strip()
+        description = request.form.get("description", "").strip()
+        file = request.files.get("file")
 
         if not title:
             flash(t["doc_title_required"], "danger")
-            return redirect(url_for('upload', lang=lang))
+            return redirect(url_for("upload", lang=lang))
 
         if not file or not file.filename:
             flash(t["file_required"], "danger")
-            return redirect(url_for('upload', lang=lang))
+            return redirect(url_for("upload", lang=lang))
 
         if not allowed_file(file.filename):
             flash(t["invalid_file_type"], "danger")
-            return redirect(url_for('upload', lang=lang))
+            return redirect(url_for("upload", lang=lang))
 
         original_filename = secure_filename(file.filename)
-        extension = original_filename.rsplit('.', 1)[1].lower()
+        extension = original_filename.rsplit(".", 1)[1].lower()
         stored_filename = f"users/{current_user.id}/{category}/{uuid.uuid4().hex}.{extension}"
-       # stored_filename = f"{uuid.uuid4().hex}.{extension}"
+        # stored_filename = f"{uuid.uuid4().hex}.{extension}"
 
         # احسب الحجم قبل الرفع
         file.stream.seek(0, os.SEEK_END)
@@ -486,15 +484,13 @@ def upload():
         try:
             s3.upload_fileobj(
                 file.stream,
-                app.config['AWS_BUCKET_NAME'],
+                app.config["AWS_BUCKET_NAME"],
                 stored_filename,
-                ExtraArgs={
-                    "ContentType": file.content_type or "application/octet-stream"
-                }
+                ExtraArgs={"ContentType": file.content_type or "application/octet-stream"},
             )
         except (BotoCoreError, ClientError, Exception) as e:
             flash(f"S3 upload failed: {str(e)}", "danger")
-            return redirect(url_for('upload', lang=lang))
+            return redirect(url_for("upload", lang=lang))
 
         file_url = (
             f"https://{app.config['AWS_BUCKET_NAME']}.s3."
@@ -510,45 +506,45 @@ def upload():
             original_filename=original_filename,
             file_type=extension,
             file_size=file_size,
-            user_id=current_user.id
+            user_id=current_user.id,
         )
 
         db.session.add(document)
         db.session.commit()
 
         flash(t["document_uploaded"], "success")
-        return redirect(url_for('documents', lang=lang))
+        return redirect(url_for("documents", lang=lang))
 
-    return render_template('upload.html', t=t, lang=lang)
+    return render_template("upload.html", t=t, lang=lang)
 
 
-@app.route('/documents')
+@app.route("/documents")
 @login_required
 @pin_required_route
 def documents():
     lang = get_lang()
     t = translations[lang]
 
-    selected_category = request.args.get('category', '').strip()
+    selected_category = request.args.get("category", "").strip()
     query = Document.query.filter_by(user_id=current_user.id)
 
-    if selected_category in ['government', 'medical', 'property', 'personal']:
+    if selected_category in ["government", "medical", "property", "personal"]:
         query = query.filter_by(category=selected_category)
 
     documents_list = query.order_by(Document.upload_date.desc()).all()
     counts = get_category_counts(current_user.id)
 
     return render_template(
-        'documents.html',
+        "documents.html",
         t=t,
         lang=lang,
         documents=documents_list,
         counts=counts,
-        selected_category=selected_category
+        selected_category=selected_category,
     )
 
 
-@app.route('/documents/download/<int:document_id>')
+@app.route("/documents/download/<int:document_id>")
 @login_required
 @pin_required_route
 def download_document(document_id):
@@ -558,25 +554,22 @@ def download_document(document_id):
 
     if document.user_id != current_user.id:
         flash(t["not_authorized"], "danger")
-        return redirect(url_for('documents', lang=lang))
+        return redirect(url_for("documents", lang=lang))
 
     try:
         presigned_url = s3.generate_presigned_url(
-            'get_object',
-            Params={
-                'Bucket': app.config['AWS_BUCKET_NAME'],
-                'Key': document.stored_filename
-            },
-            ExpiresIn=300  # 5 minutes
+            "get_object",
+            Params={"Bucket": app.config["AWS_BUCKET_NAME"], "Key": document.stored_filename},
+            ExpiresIn=300,  # 5 minutes
         )
         return redirect(presigned_url)
 
     except Exception as e:
         flash(f"Download link generation failed: {str(e)}", "danger")
-        return redirect(url_for('documents', lang=lang))
+        return redirect(url_for("documents", lang=lang))
 
 
-@app.route('/documents/edit/<int:document_id>', methods=['GET', 'POST'])
+@app.route("/documents/edit/<int:document_id>", methods=["GET", "POST"])
 @login_required
 @pin_required_route
 def edit_document(document_id):
@@ -586,16 +579,16 @@ def edit_document(document_id):
 
     if document.user_id != current_user.id:
         flash(t["not_authorized"], "danger")
-        return redirect(url_for('documents', lang=lang))
+        return redirect(url_for("documents", lang=lang))
 
-    if request.method == 'POST':
-        title = request.form.get('title', '').strip()
-        category = request.form.get('category', '').strip()
-        description = request.form.get('description', '').strip()
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        category = request.form.get("category", "").strip()
+        description = request.form.get("description", "").strip()
 
         if not title:
             flash(t["doc_title_required"], "danger")
-            return redirect(url_for('edit_document', document_id=document.id, lang=lang))
+            return redirect(url_for("edit_document", document_id=document.id, lang=lang))
 
         document.title = title
         document.category = category
@@ -603,12 +596,12 @@ def edit_document(document_id):
 
         db.session.commit()
         flash(t["document_updated"], "success")
-        return redirect(url_for('documents', lang=lang))
+        return redirect(url_for("documents", lang=lang))
 
-    return render_template('edit_document.html', t=t, lang=lang, document=document)
+    return render_template("edit_document.html", t=t, lang=lang, document=document)
 
 
-@app.route('/documents/delete/<int:document_id>', methods=['POST'])
+@app.route("/documents/delete/<int:document_id>", methods=["POST"])
 @login_required
 @pin_required_route
 def delete_document(document_id):
@@ -618,33 +611,30 @@ def delete_document(document_id):
 
     if document.user_id != current_user.id:
         flash(t["not_authorized"], "danger")
-        return redirect(url_for('documents', lang=lang))
+        return redirect(url_for("documents", lang=lang))
 
     try:
-        s3.delete_object(
-            Bucket=app.config['AWS_BUCKET_NAME'],
-            Key=document.stored_filename
-        )
+        s3.delete_object(Bucket=app.config["AWS_BUCKET_NAME"], Key=document.stored_filename)
     except (BotoCoreError, ClientError, Exception) as e:
         flash(f"S3 delete failed: {str(e)}", "danger")
-        return redirect(url_for('documents', lang=lang))
+        return redirect(url_for("documents", lang=lang))
 
     db.session.delete(document)
     db.session.commit()
 
     flash(t["document_deleted"], "success")
-    return redirect(url_for('documents', lang=lang))
+    return redirect(url_for("documents", lang=lang))
 
 
-@app.route('/documents/clear-pin')
+@app.route("/documents/clear-pin")
 @login_required
 def clear_pin():
-    session.pop('pin_verified', None)
+    session.pop("pin_verified", None)
     flash(translations[get_lang()]["documents_protected"], "info")
-    return redirect(url_for('dashboard', lang=get_lang()))
+    return redirect(url_for("dashboard", lang=get_lang()))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
