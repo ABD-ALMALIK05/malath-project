@@ -48,6 +48,14 @@ class Document(db.Model):
     upload_date = db.Column(db.DateTime, default=utc_now)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
+    @property
+    def storage_key(self):
+        return self.stored_filename
+
+    @storage_key.setter
+    def storage_key(self, value):
+        self.stored_filename = value
+
 
 @login_manager.user_loader
 def load_user(user_id):

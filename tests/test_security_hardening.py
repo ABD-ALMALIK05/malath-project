@@ -120,7 +120,7 @@ def test_storage_exception_text_is_not_exposed(client, app, monkeypatch):
     def fail_upload(*args, **kwargs):
         raise StorageError("internal /srv/app path and bucket details")
 
-    monkeypatch.setattr("malath.documents.routes.upload_fileobj", fail_upload)
+    monkeypatch.setattr("malath.documents.routes.save_fileobj", fail_upload)
 
     token = get_csrf_token(client, "/upload")
     response = client.post(

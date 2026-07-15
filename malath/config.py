@@ -18,12 +18,15 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
 
+    STORAGE_BACKEND = os.getenv("STORAGE_BACKEND", "local").lower()
+    LOCAL_STORAGE_PATH = os.getenv("LOCAL_STORAGE_PATH", str(BASE_DIR / "uploads"))
+
     AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID")
     AWS_SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
     AWS_BUCKET_NAME = os.getenv("AWS_S3_BUCKET")
     AWS_REGION = os.getenv("AWS_REGION")
+    S3_PRESIGNED_EXPIRES_SECONDS = int(os.getenv("S3_PRESIGNED_EXPIRES_SECONDS", "300"))
 
-    UPLOAD_FOLDER = os.getenv("LOCAL_STORAGE_PATH", str(BASE_DIR / "uploads"))
     MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH", 5 * 1024 * 1024))
 
     SESSION_COOKIE_HTTPONLY = True

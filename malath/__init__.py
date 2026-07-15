@@ -19,7 +19,8 @@ def create_app(config_object=None):
         app.config.from_object(config_object)
 
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
-    Path(app.config["UPLOAD_FOLDER"]).mkdir(parents=True, exist_ok=True)
+    if app.config.get("STORAGE_BACKEND", "local") == "local":
+        Path(app.config["LOCAL_STORAGE_PATH"]).mkdir(parents=True, exist_ok=True)
 
     db.init_app(app)
     login_manager.init_app(app)

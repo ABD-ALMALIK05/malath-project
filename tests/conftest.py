@@ -19,6 +19,9 @@ class TestConfig:
     PIN_VERIFICATION_MINUTES = 1
     RATE_LIMIT_DEFAULT = 100
     RATE_LIMIT_WINDOW_SECONDS = 60
+    STORAGE_BACKEND = "local"
+    S3_PRESIGNED_EXPIRES_SECONDS = 300
+    MAX_CONTENT_LENGTH = 5 * 1024 * 1024
     AWS_ACCESS_KEY = "test"
     AWS_SECRET_KEY = "test"
     AWS_BUCKET_NAME = "test-bucket"
@@ -29,7 +32,7 @@ class TestConfig:
 def app(tmp_path):
     class Config(TestConfig):
         SQLALCHEMY_DATABASE_URI = f"sqlite:///{(tmp_path / 'test.db').as_posix()}"
-        UPLOAD_FOLDER = str(tmp_path / "uploads")
+        LOCAL_STORAGE_PATH = str(tmp_path / "uploads")
 
     reset_rate_limits()
     app = create_app(Config)
