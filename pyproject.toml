@@ -25,7 +25,7 @@ addopts = [
 
 [tool.coverage.run]
 branch = true
-source = ["app"]
+source = ["malath"]
 omit = [
     "tests/*",
 ]
