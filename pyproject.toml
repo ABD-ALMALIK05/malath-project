@@ -1,17 +1,26 @@
 [project]
 name = "malath"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Bilingual Flask platform for organizing and managing personal documents."
 requires-python = ">=3.11,<3.13"
 dependencies = [
+    "alembic==1.18.5",
     "boto3==1.42.87",
     "Flask==3.1.3",
     "Flask-Login==0.6.3",
+    "Flask-Migrate==4.1.0",
     "Flask-SQLAlchemy==3.1.1",
     "Pillow==12.3.0",
     "python-dotenv==1.2.2",
     "Werkzeug==3.1.8",
 ]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.dynamic]
+version = {attr = "malath.version.__version__"}
 
 [tool.ruff]
 line-length = 100

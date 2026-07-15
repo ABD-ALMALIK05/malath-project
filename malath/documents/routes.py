@@ -65,8 +65,8 @@ def upload():
                 storage_key,
                 validated_file.content_type,
             )
-        except StorageError:
-            current_app.logger.warning("Document upload failed", exc_info=True)
+        except StorageError as error:
+            current_app.logger.warning("document_upload_failed error_type=%s", type(error).__name__)
             flash(t["storage_upload_failed"], "danger")
             return render_upload_form(t, lang, form_data, field_errors)
 
@@ -85,13 +85,18 @@ def upload():
         db.session.add(document)
         try:
             db.session.commit()
-        except SQLAlchemyError:
+        except SQLAlchemyError as error:
             db.session.rollback()
-            current_app.logger.warning("Document database save failed", exc_info=True)
+            current_app.logger.warning(
+                "document_database_save_failed error_type=%s", type(error).__name__
+            )
             try:
                 delete_object(storage_key)
-            except StorageError:
-                current_app.logger.warning("Uploaded object cleanup failed", exc_info=True)
+            except StorageError as cleanup_error:
+                current_app.logger.warning(
+                    "uploaded_object_cleanup_failed error_type=%s",
+                    type(cleanup_error).__name__,
+                )
             flash(t["storage_upload_failed"], "danger")
             return render_upload_form(t, lang, form_data, field_errors)
 
@@ -139,8 +144,8 @@ def download_document(document_id):
             document.original_filename,
             content_type_for(document.file_type),
         )
-    except StorageError:
-        current_app.logger.warning("Document download link generation failed", exc_info=True)
+    except StorageError as error:
+        current_app.logger.warning("document_download_failed error_type=%s", type(error).__name__)
         flash(t["storage_download_failed"], "danger")
         return redirect(url_for("documents.documents", lang=lang))
 
@@ -191,17 +196,21 @@ def delete_document(document_id):
 
     try:
         delete_object(document.storage_key)
-    except StorageError:
-        current_app.logger.warning("Document deletion failed", exc_info=True)
+    except StorageError as error:
+        current_app.logger.warning(
+            "document_storage_delete_failed error_type=%s", type(error).__name__
+        )
         flash(t["storage_delete_failed"], "danger")
         return redirect(url_for("documents.documents", lang=lang))
 
     db.session.delete(document)
     try:
         db.session.commit()
-    except SQLAlchemyError:
+    except SQLAlchemyError as error:
         db.session.rollback()
-        current_app.logger.warning("Document database deletion failed", exc_info=True)
+        current_app.logger.warning(
+            "document_database_delete_failed error_type=%s", type(error).__name__
+        )
         flash(t["storage_delete_failed"], "danger")
         return redirect(url_for("documents.documents", lang=lang))
 

@@ -4,7 +4,8 @@ from pathlib import Path
 from flask import Flask
 
 from .config import Config
-from .extensions import db, login_manager
+from .errors import register_error_handlers, render_error
+from .extensions import db, login_manager, migrate
 from .i18n import (
     category_label,
     format_file_size,
@@ -15,6 +16,7 @@ from .i18n import (
     switch_language_url,
 )
 from .security import CSRFError, generate_csrf_token, validate_csrf_token
+from .version import __version__
 
 
 def create_app(config_object=None):
@@ -32,6 +34,7 @@ def create_app(config_object=None):
 
     db.init_app(app)
     login_manager.init_app(app)
+    migrate.init_app(app, db)
 
     import_module("malath.models")
     import_module("malath.auth.routes")
@@ -45,6 +48,12 @@ def create_app(config_object=None):
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(documents_bp)
+
+    from .logging_config import configure_logging
+
+    configure_logging(app)
+    register_error_handlers(app)
+    app.config["APPLICATION_VERSION"] = __version__
 
     app.jinja_env.globals["csrf_token"] = generate_csrf_token
 
@@ -78,11 +87,7 @@ def create_app(config_object=None):
     def handle_csrf_error(error):
         lang = get_lang()
         return (
-            render_security_error(
-                status_code=400,
-                message=get_translations(lang)["csrf_error"],
-                lang=lang,
-            ),
+            render_error(400, message=get_translations(lang)["csrf_error"]),
             400,
         )
 
@@ -92,15 +97,3 @@ def create_app(config_object=None):
         print("Database tables initialized.")
 
     return app
-
-
-def render_security_error(status_code, message, lang):
-    from flask import render_template
-
-    return render_template(
-        "error.html",
-        t=get_translations(lang),
-        lang=lang,
-        status_code=status_code,
-        message=message,
-    )

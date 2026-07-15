@@ -110,6 +110,12 @@ TRANSLATIONS = {
         "verify_to_access": "Verify your PIN to access sensitive documents.",
         "submitting": "Please wait...",
         "page_error": "Something needs your attention.",
+        "error_400": "The request could not be processed. Please check it and try again.",
+        "error_403": "You do not have permission to access this page.",
+        "error_404": "The page you requested could not be found.",
+        "error_413": "The uploaded file is larger than the allowed limit.",
+        "error_429": "Too many requests. Please wait and try again.",
+        "error_500": "An unexpected error occurred. Please try again later.",
     },
     "ar": {
         "brand": "Malath",
@@ -217,6 +223,12 @@ TRANSLATIONS = {
         "verify_to_access": "أكد الرقم السري للوصول إلى الوثائق الحساسة.",
         "submitting": "يرجى الانتظار...",
         "page_error": "هناك أمر يحتاج إلى انتباهك.",
+        "error_400": "تعذرت معالجة الطلب. يرجى التحقق منه والمحاولة مرة أخرى.",
+        "error_403": "ليس لديك صلاحية للوصول إلى هذه الصفحة.",
+        "error_404": "تعذر العثور على الصفحة المطلوبة.",
+        "error_413": "الملف المرفوع أكبر من الحد المسموح به.",
+        "error_429": "طلبات كثيرة جدًا. يرجى الانتظار والمحاولة مرة أخرى.",
+        "error_500": "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى لاحقًا.",
     },
 }
 

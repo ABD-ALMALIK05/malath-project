@@ -38,3 +38,4 @@ class Config:
     CSRF_ENABLED = os.getenv("CSRF_ENABLED", "true").lower() != "false"
     RATE_LIMIT_DEFAULT = int(os.getenv("RATE_LIMIT_DEFAULT", "5"))
     RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "300"))
+    LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
