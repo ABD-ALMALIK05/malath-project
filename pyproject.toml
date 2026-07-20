@@ -5,7 +5,7 @@ description = "Bilingual Flask platform for organizing and managing personal doc
 requires-python = ">=3.11,<3.13"
 dependencies = [
     "alembic==1.18.5",
-    "boto3==1.42.87",
+    "boto3==1.43.52",
     "Flask==3.1.3",
     "Flask-Login==0.6.3",
     "Flask-Migrate==4.1.0",
